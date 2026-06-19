@@ -1,35 +1,68 @@
 import { useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Logo, StatusDot } from './atoms'
 
-const NAV = ['Overview', 'Markets', 'Blocks', 'Transactions', 'Vaults', 'Traders']
+const NAV: Array<[string, string]> = [
+  ['Overview', '/'],
+  ['Markets', '/markets'],
+  ['Traders', '/traders'],
+  ['Account', '/account'],
+]
 
-export function Header({ active, onNav }: { active: string; onNav: (s: string) => void }) {
+/** Route a raw search query to the most likely destination. */
+function resolveQuery(raw: string): string | null {
+  const q = raw.trim()
+  if (!q) return null
+  const hex = q.toLowerCase()
+  if (/^0x[0-9a-f]{64}$/.test(hex)) return `/tx/${hex}`
+  if (/^0x[0-9a-f]{40}$/.test(hex)) return `/account/${hex}`
+  if (/^[0-9]{1,12}$/.test(q)) return `/block/${q}`
+  if (/^[a-z]{2,8}$/i.test(q)) return `/markets?q=${encodeURIComponent(q.toUpperCase())}`
+  // fallback: treat as account-ish lookup
+  return `/account/${hex}`
+}
+
+export function Header() {
   const [q, setQ] = useState('')
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault()
+    const dest = resolveQuery(q)
+    if (dest) {
+      navigate(dest)
+      setQ('')
+    }
+  }
+
+  const isActive = (path: string) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-base/80 backdrop-blur-xl">
       <div className="mx-auto max-w-[1320px] px-4 lg:px-6">
         <div className="flex h-16 items-center gap-4">
-          <button onClick={() => onNav('Overview')} className="shrink-0">
+          <Link to="/" className="shrink-0">
             <Logo />
-          </button>
+          </Link>
 
           <nav className="hidden lg:flex items-center gap-1 ml-3">
-            {NAV.map((n) => (
-              <button
+            {NAV.map(([n, path]) => (
+              <Link
                 key={n}
-                onClick={() => onNav(n)}
+                to={path}
                 className={`mono text-[12px] uppercase tracking-[0.12em] px-3 py-2 rounded-md transition-colors ${
-                  active === n ? 'text-mint bg-mint/[0.07]' : 'text-ink-soft hover:text-ink hover:bg-white/[0.03]'
+                  isActive(path) ? 'text-mint bg-mint/[0.07]' : 'text-ink-soft hover:text-ink hover:bg-white/[0.03]'
                 }`}
               >
                 {n}
-              </button>
+              </Link>
             ))}
           </nav>
 
           <form
-            onSubmit={(e) => e.preventDefault()}
+            onSubmit={submit}
             className="hidden md:flex flex-1 max-w-md ml-auto items-center gap-2 rounded-lg border border-line bg-surface/80 px-3 h-9 focus-within:border-mint/40 transition-colors"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="text-ink-mute">

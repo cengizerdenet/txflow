@@ -33,7 +33,19 @@ function StatCell({
   )
 }
 
-export function Hero({ stats }: { stats: NetStats }) {
+export function Hero({
+  stats,
+  live,
+  lastUpdated,
+}: {
+  stats: NetStats
+  live?: boolean
+  lastUpdated?: number
+}) {
+  const updatedAt =
+    lastUpdated && lastUpdated > 0
+      ? new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      : null
   return (
     <section className="relative overflow-hidden">
       {/* scanline accent */}
@@ -43,9 +55,10 @@ export function Hero({ stats }: { stats: NetStats }) {
 
       <div className="mx-auto max-w-[1320px] px-4 lg:px-6 pt-10 pb-6 relative">
         <div className="flex flex-wrap items-center gap-2.5 mb-4">
-          <Pill tone="mint">Protocol Live</Pill>
+          <Pill tone={live ? 'mint' : 'mute'}>{live ? 'Live Market Data' : 'Connecting…'}</Pill>
           <Pill tone="cyan">TIP Liquidity Standards</Pill>
           <Pill tone="mute">Fully On-Chain CLOB</Pill>
+          {updatedAt && <span className="label text-ink-mute">prices · Binance · {updatedAt}</span>}
         </div>
 
         <h1 className="text-[clamp(28px,5vw,46px)] font-bold leading-[1.05] tracking-tight max-w-3xl">
@@ -62,6 +75,10 @@ export function Hero({ stats }: { stats: NetStats }) {
 
         {/* primary stats strip */}
         <div className="mt-7 card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-1.5 border-b border-line-soft bg-surface/40">
+            <span className="label text-ink-mute">Chain throughput</span>
+            <span className="label text-warn/80">◆ Simulated · no public RPC yet</span>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y divide-line-soft lg:divide-y-0">
             <StatCell label="TPS" value={fmtNum(stats.tps)} accent="mint" pulse />
             <StatCell label="Block Time" value={`${stats.blockTime.toFixed(2)}s`} />
@@ -70,7 +87,13 @@ export function Hero({ stats }: { stats: NetStats }) {
             <StatCell label="Block Height" value={fmtNum(stats.blockHeight)} pulse />
             <StatCell label="Network Load" value={`${(stats.networkLoad * 100).toFixed(0)}%`} accent="warn" />
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y divide-line-soft lg:divide-y-0 border-t border-line-soft">
+          <div className="flex items-center justify-between px-4 py-1.5 border-y border-line-soft bg-surface/40">
+            <span className="label text-ink-mute">Markets &amp; liquidity</span>
+            <span className={`label ${live ? 'text-mint/80' : 'text-ink-mute'}`}>
+              {live ? '● Live · Binance + DefiLlama' : '○ Connecting…'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y divide-line-soft lg:divide-y-0">
             <StatCell label="Total Txns" value={fmtNum(stats.totalTxns, { compact: true })} />
             <StatCell label="Accounts" value={fmtNum(stats.accounts, { compact: true })} />
             <StatCell label="TVL" value={fmtUsd(stats.tvl, { compact: true })} accent="mint" />

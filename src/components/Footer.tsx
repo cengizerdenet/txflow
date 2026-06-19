@@ -1,4 +1,51 @@
+import { Link } from 'react-router-dom'
 import { Logo, StatusDot } from './atoms'
+
+const COLS: Array<[string, Array<[string, string]>]> = [
+  [
+    'Explore',
+    [
+      ['Overview', '/'],
+      ['Markets', '/markets'],
+      ['Traders', '/traders'],
+      ['Account', '/account'],
+    ],
+  ],
+  [
+    'Protocol',
+    [
+      ['Trade ↗', 'https://app.txflow.com/r/TXCANAVAR'],
+      ['Documentation ↗', 'https://docs.txflow.com/'],
+      ['Channels ↗', 'https://docs.txflow.com/'],
+      ['Download App ↗', 'https://app.txflow.com/download'],
+    ],
+  ],
+  [
+    'Community',
+    [
+      ['X ↗', 'https://x.com/TxFlow_L1'],
+      ['Discord ↗', 'https://discord.gg/txflow'],
+      ['Status', '/'],
+      ['API', '/'],
+    ],
+  ],
+]
+
+function FootLink({ label, href }: { label: string; href: string }) {
+  const cls = 'mono text-[12px] text-ink-soft hover:text-mint transition-colors'
+  if (href.startsWith('http')) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className={cls}>
+        {label}
+      </a>
+    )
+  }
+  return (
+    <Link to={href} className={cls}>
+      {label}
+    </Link>
+  )
+}
 
 export function Footer() {
   return (
@@ -15,24 +62,13 @@ export function Footer() {
           </div>
 
           <div className="grid grid-cols-3 gap-x-10 gap-y-2">
-            {([
-              ['Explore', [['Overview', '#'], ['Markets', '#markets'], ['Blocks', '#feed'], ['Transactions', '#feed']]],
-              ['Protocol', [['Trade ↗', 'https://app.txflow.com/r/TXCANAVAR'], ['Documentation ↗', 'https://docs.txflow.com/'], ['Vaults', '#vaults'], ['Channels', 'https://docs.txflow.com/']]],
-              ['Community', [['X ↗', 'https://x.com/TxFlow_L1'], ['Discord ↗', 'https://discord.gg/txflow'], ['Status', '#'], ['API', '#']]],
-            ] as Array<[string, Array<[string, string]>]>).map(([title, items]) => (
+            {COLS.map(([title, items]) => (
               <div key={title}>
                 <div className="label mb-3">{title}</div>
                 <ul className="space-y-2">
-                  {items.map(([it, href]) => (
-                    <li key={it}>
-                      <a
-                        href={href}
-                        target={href.startsWith('http') ? '_blank' : undefined}
-                        rel={href.startsWith('http') ? 'noreferrer' : undefined}
-                        className="mono text-[12px] text-ink-soft hover:text-mint transition-colors"
-                      >
-                        {it}
-                      </a>
+                  {items.map(([label, href]) => (
+                    <li key={label}>
+                      <FootLink label={label} href={href} />
                     </li>
                   ))}
                 </ul>

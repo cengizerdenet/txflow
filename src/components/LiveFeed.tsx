@@ -1,12 +1,17 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { Block, Txn } from '../lib/mock'
 import { METHOD_TINT } from '../lib/mock'
 import { fmtNum, fmtUsd, shortHash, timeAgo } from '../lib/format'
 import { StatusDot } from './atoms'
 
 function BlockRow({ b }: { b: Block }) {
+  const navigate = useNavigate()
   return (
-    <div className="row-hover flex items-center gap-3 px-4 py-2.5 border-b border-line-soft animate-fade-slide">
+    <div
+      onClick={() => navigate(`/block/${b.height}`)}
+      className="row-hover flex items-center gap-3 px-4 py-2.5 border-b border-line-soft animate-fade-slide cursor-pointer"
+    >
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line bg-mint/[0.06]">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="text-mint">
           <path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
@@ -31,8 +36,12 @@ function BlockRow({ b }: { b: Block }) {
 }
 
 function TxnRow({ t }: { t: Txn }) {
+  const navigate = useNavigate()
   return (
-    <div className="row-hover flex items-center gap-3 px-4 py-2.5 border-b border-line-soft animate-fade-slide">
+    <div
+      onClick={() => navigate(`/tx/${t.hash}`)}
+      className="row-hover flex items-center gap-3 px-4 py-2.5 border-b border-line-soft animate-fade-slide cursor-pointer"
+    >
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line bg-white/[0.02]">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-ink-soft">
           <path d="M4 12h16M14 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

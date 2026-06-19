@@ -283,3 +283,163 @@ export function initialStats(): NetStats {
     uptime: 99.99,
   }
 }
+
+/* ------------------------------------------------------------------ *
+ *  Deterministic detail-page data (account / block / tx)              *
+ * ------------------------------------------------------------------ */
+import { pick, range, rngFrom, seededHex } from './seed'
+
+const MARKET_SYMS = MARKET_SEED.map((m) => m[0])
+const MARKET_PRICES: Record<string, number> = Object.fromEntries(
+  MARKET_SEED.map((m) => [m[0], m[2]]),
+)
+
+export interface Position {
+  market: string
+  side: 'LONG' | 'SHORT'
+  size: number
+  entry: number
+  mark: number
+  leverage: number
+  pnl: number
+  pnlPct: number
+}
+
+export interface AccountInfo {
+  address: string
+  equity: number
+  available: number
+  marginUsed: number
+  positions: Position[]
+  txns: Txn[]
+  pnl30d: number
+  volume30d: number
+  trades: number
+  win: number
+  firstSeen: number
+}
+
+export function getAccount(address: string): AccountInfo {
+  const rng = rngFrom(address.toLowerCase())
+  const posCount = Math.floor(range(rng, 0, 5))
+  const positions: Position[] = Array.from({ length: posCount }, () => {
+    const market = pick(rng, MARKET_SYMS)
+    const mark = MARKET_PRICES[market]
+    const entry = mark * (1 + range(rng, -0.12, 0.12))
+    const side: 'LONG' | 'SHORT' = rng() > 0.5 ? 'LONG' : 'SHORT'
+    const size = range(rng, 0.2, 40) * (mark > 1000 ? 0.05 : 1)
+    const notional = size * mark
+    const dir = side === 'LONG' ? 1 : -1
+    const pnlPct = ((mark - entry) / entry) * 100 * dir
+    return {
+      market,
+      side,
+      size,
+      entry,
+      mark,
+      leverage: pick(rng, [5, 10, 20, 25, 40, 50]),
+      pnl: (notional * pnlPct) / 100,
+      pnlPct,
+    }
+  })
+
+  const txns: Txn[] = Array.from({ length: Math.floor(range(rng, 6, 16)) }, () => {
+    const method = pick(rng, TX_METHODS)
+    const usesMarket = ['PlaceOrder', 'CancelOrder', 'MarketMatch', 'Liquidation', 'FundingPayment'].includes(method)
+    return {
+      hash: seededHex(rng, 64),
+      ts: Date.now() - Math.floor(range(rng, 30, 86_400 * 12) * 1000),
+      method,
+      from: address,
+      to: seededHex(rng, 40),
+      value: range(rng, 50, 180_000),
+      market: usesMarket ? pick(rng, MARKET_SYMS) : undefined,
+    }
+  }).sort((a, b) => b.ts - a.ts)
+
+  const equity = range(rng, 1_200, 4_800_000)
+  const marginUsed = equity * range(rng, 0.05, 0.7)
+  return {
+    address,
+    equity,
+    available: equity - marginUsed,
+    marginUsed,
+    positions,
+    txns,
+    pnl30d: range(rng, -180_000, 920_000),
+    volume30d: range(rng, 50_000, 64_000_000),
+    trades: Math.floor(range(rng, 12, 8400)),
+    win: range(rng, 38, 79),
+    firstSeen: Date.now() - Math.floor(range(rng, 5, 320) * 86_400 * 1000),
+  }
+}
+
+export interface BlockDetail extends Block {
+  parentHash: string
+  stateRoot: string
+  size: number
+  gasLimit: number
+  txList: Txn[]
+}
+
+export function getBlock(height: number): BlockDetail {
+  const rng = rngFrom('block:' + height)
+  const txCount = Math.floor(range(rng, 40, 600))
+  const txList: Txn[] = Array.from({ length: Math.min(txCount, 40) }, () => {
+    const method = pick(rng, TX_METHODS)
+    const usesMarket = ['PlaceOrder', 'CancelOrder', 'MarketMatch', 'Liquidation', 'FundingPayment'].includes(method)
+    return {
+      hash: seededHex(rng, 64),
+      ts: Date.now(),
+      method,
+      from: seededHex(rng, 40),
+      to: seededHex(rng, 40),
+      value: range(rng, 10, 220_000),
+      market: usesMarket ? pick(rng, MARKET_SYMS) : undefined,
+    }
+  })
+  return {
+    height,
+    hash: seededHex(rng, 64),
+    parentHash: seededHex(rng, 64),
+    stateRoot: seededHex(rng, 64),
+    ts: Date.now() - Math.floor(range(rng, 0, 600) * 1000),
+    txns: txCount,
+    proposer: pick(rng, PROPOSERS),
+    gasUsed: rng(),
+    size: range(rng, 12, 480),
+    gasLimit: 30_000_000,
+    txList,
+  }
+}
+
+export interface TxDetail extends Txn {
+  block: number
+  status: 'Success' | 'Reverted'
+  fee: number
+  nonce: number
+  gasUsed: number
+  confirmations: number
+}
+
+export function getTx(hash: string, currentHeight: number): TxDetail {
+  const rng = rngFrom(hash.toLowerCase())
+  const method = pick(rng, TX_METHODS)
+  const usesMarket = ['PlaceOrder', 'CancelOrder', 'MarketMatch', 'Liquidation', 'FundingPayment'].includes(method)
+  const block = currentHeight - Math.floor(range(rng, 1, 40_000))
+  return {
+    hash,
+    ts: Date.now() - Math.floor(range(rng, 5, 86_400 * 6) * 1000),
+    method,
+    from: seededHex(rng, 40),
+    to: seededHex(rng, 40),
+    value: range(rng, 10, 240_000),
+    market: usesMarket ? pick(rng, MARKET_SYMS) : undefined,
+    block,
+    status: rng() > 0.06 ? 'Success' : 'Reverted',
+    fee: range(rng, 0.0001, 0.02),
+    nonce: Math.floor(range(rng, 1, 5000)),
+    gasUsed: Math.floor(range(rng, 21_000, 240_000)),
+    confirmations: currentHeight - block,
+  }
+}
